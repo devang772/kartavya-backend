@@ -217,7 +217,7 @@ module.exports.viewUser = async (req, res) => {
                         .select('-salt -hash -_id')
                         .populate({
                             path: 'donations',
-                            select: '-_id -user'
+                            select: '-user'
                         })
                         .populate({
                             path: 'sponsoredStudents',
@@ -630,7 +630,7 @@ module.exports.getDashboard = async (req, res) => {
                 .select('-salt -hash -_id')
                 .populate({
                     path: 'donations',
-                    select: '-_id -user'
+                    select: '-user'
                 })
                 .populate({
                     path: 'sponsoredStudents',

@@ -42,6 +42,11 @@ const DonationSchema = new Schema({
         type: Number,
         default: 0
     },
+    receiptNumber: {
+        type: String,
+        default: null,
+        unique: true
+    }
 });
 
 

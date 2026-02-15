@@ -4,6 +4,7 @@ const jwt = require('jsonwebtoken');
 const { sendEmail } = require('../utils/mailer');
 const generateEmailTemplate = require('../utils/mailTemplate');
 const deleteFromAzureBlob = require('../utils/deleteFromBlob');
+const generateReceiptPDF = require('../utils/generateReceiptPdf');
 
 module.exports.donate = async (req, res, recieptUrl) => {
     try {
@@ -150,10 +151,21 @@ module.exports.verifyDonation = async (req, res) => {
                 await donor.save();
             }
 
+            if (donation.verified) {
+                return res.status(400).json({ message: "Donation already verified" });
+            }
+
+            const count = await Donation.countDocuments({ verified: true });
+            const nextNumber = (count + 1).toString().padStart(3, "0");
+            const receiptNumber = `KAR/DHN/${nextNumber}`;
+
             user.lastDonationDate = Date.now();
             donation.verified = true;
             donation.expiryDate = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+            donation.receiptNumber = receiptNumber;
             await donation.save();
+
+            const pdfBuffer = await generateReceiptPDF(donation);
 
             const emailTemplate = generateEmailTemplate({
                 title: 'Donation Verified',
@@ -171,7 +183,14 @@ module.exports.verifyDonation = async (req, res) => {
                 to: donation.email,
                 subject: 'Kartavya - Donation Verified',
                 html: emailTemplate,
-                text: `Your donation of ₹${donation.amount} has been verified.`
+                text: `Your donation of ₹${donation.amount} has been verified.`,
+                attachments: [
+                    {
+                        filename: `${donation.receiptNumber}.pdf`,
+                        content: pdfBuffer,
+                        contentType: 'application/pdf'
+                    }
+                ]
             }, 'admin');
 
             return res.status(200).json({ message: 'Donation Verified' });
